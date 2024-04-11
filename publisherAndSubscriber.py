@@ -8,6 +8,7 @@ myTopicUmidade = "/Umid/infLed"
 myTopicDistancia = "/Dist/infLed"
 myTopicActionDistance = "/Act/Sonoro"
 myTopicAction = "/Action/Buzzer"
+myTopic = "engeasier/led"
 
 
 # Variáveis que receberão os valores de temp. e umid. do sensor DHT22 (Wokwi)
@@ -19,12 +20,30 @@ distance = 0
 # Conexão com o Broker
 mqttBroker ="broker.hivemq.com" 
 
+
 client = mqtt.Client(mqtt.CallbackAPIVersion.VERSION2)
 client.connect(mqttBroker) 
+
+#conexão com o node red
+#def on_connect(clientNode, userdata, flags, rc):
+#    print("Conectado ao broker MQTT com código de retorno: " + str(rc))
+#    clientNode.subscribe("engeaser/led")
+#
+#def on_message(clientNode, userdata, msg):
+#    print("Recebido mensagem no tópico " + msg.topic + ": " + str(msg.payload.decode()))
+#
+## Configuração do cliente MQTT
+#clientNode = mqtt.Client()
+#clientNode.on_connect = on_connect
+#clientNode.on_message = on_message
+#
+## Conexão ao broker MQTT
+#clientNode.connect("localhost", 1883, 60)
 
 def tratarSens():
     comando = ''
     
+    print(botao)
     #tratando da distância da água
     if distance < 100 and (humidity > 70 and temperature < 20):
         client.loop()
@@ -45,9 +64,10 @@ def tratarSens():
 
     return comando
 
+
 # Esta função analisa o tópico que deverá ser escutado e armazena o conteúdo do tópico (payload) em uma variável
 def callback(client, userdata, message):
-    global myTopicTemperatura, myTopicUmidade, myTopicDistancia, temperature, humidity, distance
+    global myTopicTemperatura, myTopicUmidade, myTopicDistancia, temperature, humidity, distance, botao
 
     print("Tópico: ", str(message.topic))
     if (message.topic == myTopicTemperatura):
@@ -56,6 +76,8 @@ def callback(client, userdata, message):
                 humidity = int(str(message.payload.decode("utf-8")))
     if (message.topic == myTopicDistancia):
                 distance = int(str(message.payload.decode("utf-8")))
+    if (message.topic == myTopic):
+                botao = int(str(message.payload.decode("utf-8")))
     
 # Indica o assunto de cada tópico
 #print("Temperatura: " + str(myTopicTemperatura))
@@ -69,6 +91,9 @@ client.subscribe("/Umid/infLed")
 
 client.message_callback_add("/Dist/infLed", callback)
 client.subscribe("/Dist/infLed")
+
+client.message_callback_add("engeasier/led", callback)
+client.subscribe("/engeasier/led")
 
 
 # Aqui haverá as comparações (previsão de chuva), de acordo com as informações nos tópicos do Broker. A partir daí, serão publicados no respectivo tópico as ações a serem tomadas na ESP32
